@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">discount calculate and currency exchange app</a> &gt; <a href="index.source.html" class="el_package">com.discountcalc.security</a> &gt; <span class="el_source">JwtUtil.java</span></div><h1>JwtUtil.java</h1><pre class="source lang-java linenums">package com.discountcalc.security;
+
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
+@Profile(&quot;!test&quot;)
+<span class="nc" id="L21">public class JwtUtil {</span>
+
+    @Value(&quot;${jwt.secret}&quot;)
+    private String secretKey;
+
+<span class="nc" id="L26">    private final long VALIDITY_IN_MILLI_SEC = 3600000; // 1h</span>
+
+    public String generateToken(String username) {
+<span class="nc" id="L29">        Map&lt;String, Object&gt; claims = new HashMap&lt;&gt;();</span>
+        // Add any custom claims to the map if needed, e.g., claims.put(&quot;role&quot;, &quot;user&quot;);
+<span class="nc" id="L31">        return createToken(claims, username);</span>
+    }
+
+    private String createToken(Map&lt;String, Object&gt; claims, String subject) {
+<span class="nc" id="L35">        Date now = new Date();</span>
+<span class="nc" id="L36">        Date validity = new Date(now.getTime() + VALIDITY_IN_MILLI_SEC);</span>
+
+        try {
+            // Create a signer with the specified secret key
+<span class="nc" id="L40">            JWSSigner signer = new MACSigner(secretKey.getBytes());</span>
+
+            // Build the JWT claims set
+<span class="nc" id="L43">            JWTClaimsSet.Builder claimsSetBuilder = new JWTClaimsSet.Builder()</span>
+<span class="nc" id="L44">                    .subject(subject)</span>
+<span class="nc" id="L45">                    .issueTime(now)</span>
+<span class="nc" id="L46">                    .expirationTime(validity);</span>
+
+            // Add each claim to the claims set
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            for (Map.Entry&lt;String, Object&gt; entry : claims.entrySet()) {</span>
+<span class="nc" id="L50">                claimsSetBuilder.claim(entry.getKey(), entry.getValue());</span>
+<span class="nc" id="L51">            }</span>
+
+            // Create the signed JWT
+<span class="nc" id="L54">            SignedJWT signedJWT = new SignedJWT(</span>
+                    new JWSHeader(JWSAlgorithm.HS256),
+<span class="nc" id="L56">                    claimsSetBuilder.build()</span>
+            );
+
+            // Sign the JWT
+<span class="nc" id="L60">            signedJWT.sign(signer);</span>
+
+<span class="nc" id="L62">            return signedJWT.serialize(); // Return the serialized JWT</span>
+<span class="nc" id="L63">        } catch (Exception e) {</span>
+<span class="nc" id="L64">            throw new RuntimeException(&quot;Error generating JWT&quot;, e);</span>
+        }
+    }
+
+    public String extractUsername(String token) {
+<span class="nc" id="L69">        return extractAllClaims(token).getSubject();</span>
+    }
+
+    private JWTClaimsSet extractAllClaims(String token) {
+        try {
+<span class="nc" id="L74">            SignedJWT signedJWT = SignedJWT.parse(token);</span>
+            // Verify the signature
+<span class="nc" id="L76">            JWSVerifier verifier = new MACVerifier(secretKey.getBytes());</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            if (!signedJWT.verify(verifier)) {</span>
+<span class="nc" id="L78">                throw new RuntimeException(&quot;JWT signature verification failed&quot;);</span>
+            }
+<span class="nc" id="L80">            return signedJWT.getJWTClaimsSet();</span>
+<span class="nc" id="L81">        } catch (Exception e) {</span>
+<span class="nc" id="L82">            throw new RuntimeException(&quot;Error extracting claims from JWT&quot;, e);</span>
+        }
+    }
+
+    public boolean isTokenExpired(String token) {
+<span class="nc" id="L87">        return extractAllClaims(token).getExpirationTime().before(new Date());</span>
+    }
+
+    public boolean validateToken(String token, String username) {
+<span class="nc" id="L91">        final String extractedUsername = extractUsername(token);</span>
+<span class="nc bnc" id="L92" title="All 4 branches missed.">        return (extractedUsername.equals(username) &amp;&amp; !isTokenExpired(token));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

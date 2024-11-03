@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CurrencyExchangeService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">discount calculate and currency exchange app</a> &gt; <a href="index.source.html" class="el_package">com.discountcalc.services</a> &gt; <span class="el_source">CurrencyExchangeService.java</span></div><h1>CurrencyExchangeService.java</h1><pre class="source lang-java linenums">package com.discountcalc.services;
+
+import com.discountcalc.exceptions.CurrencyNotFoundException;
+import com.discountcalc.exceptions.ExchangeRateServiceException;
+import com.discountcalc.models.responses.ExchangeResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Optional;
+
+@Service
+@Component
+@RequiredArgsConstructor
+public class CurrencyExchangeService {
+
+    private final RestTemplate restTemplate;
+
+    @Value(&quot;${exchange.api.url}&quot;)
+    private String exchangeBaseUrl ;
+
+    @Value(&quot;${exchange.api.key}&quot;)
+    private String apiKey;
+
+
+    @Cacheable(value = &quot;exchangeRates&quot;, key = &quot;#baseCurrency + '_' + #targetCurrency&quot;)
+    public double getExchangeRate(String baseCurrency, String targetCurrency) throws ExchangeRateServiceException {
+<span class="nc" id="L33">        String url = String.format(&quot;%s/%s/latest/%s&quot;, exchangeBaseUrl, apiKey, baseCurrency);</span>
+
+        try {
+<span class="nc" id="L36">            ResponseEntity&lt;ExchangeResponse&gt; response = restTemplate.getForEntity(url, ExchangeResponse.class);</span>
+
+<span class="nc bnc" id="L38" title="All 4 branches missed.">            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {</span>
+<span class="nc" id="L39">                throw new ExchangeRateServiceException(&quot;Failed to retrieve exchange rates from the API. Status: &quot; + response.getStatusCode());</span>
+            }
+
+<span class="nc" id="L42">            return Optional.ofNullable(response.getBody().rates().get(targetCurrency))</span>
+<span class="nc" id="L43">                    .orElseThrow(() -&gt; new CurrencyNotFoundException(&quot;Target currency not found in exchange rates: &quot; + targetCurrency));</span>
+
+<span class="nc" id="L45">        } catch (RestClientException e) {</span>
+<span class="nc" id="L46">            throw new ExchangeRateServiceException(&quot;Error occurred while fetching exchange rates: &quot; + e.getMessage(), e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
