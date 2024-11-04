@@ -1,6 +1,5 @@
 package com.discountcalc;
 
-import com.discountcalc.config.SecurityConfig;
 import com.discountcalc.enums.UserType;
 import com.discountcalc.exceptions.ExchangeRateServiceException;
 import com.discountcalc.models.requests.BillRequestDTO;
@@ -11,19 +10,14 @@ import com.discountcalc.services.DiscountService;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 
@@ -112,7 +106,9 @@ class DiscountCalculationTest {
 
 		double discount = totalNonGroceryAmount * 0.10; // Affiliate discount
 
-		int additionalDiscount = ((int) request.totalAmount() / 100) * 5;
+		int additionalDiscount =(request.totalAmount() > 100)
+				? ((int) request.totalAmount() / 100) * 5
+				: 0;
 
 		double expectedAmount = (request.totalAmount() - discount - additionalDiscount) * EXCHANGE_RATE;
 
@@ -142,7 +138,9 @@ class DiscountCalculationTest {
 
 		double discount = (request.user().tenure() > 2) ? totalNonGroceryAmount * 0.05 : 0;
 
-		int additionalDiscount = ((int) request.totalAmount() / 100) * 5;
+		int additionalDiscount = (request.totalAmount() > 100)
+				? ((int) request.totalAmount() / 100) * 5
+				: 0;
 
 		double expectedAmount = (request.totalAmount() - discount - additionalDiscount) * EXCHANGE_RATE;
 

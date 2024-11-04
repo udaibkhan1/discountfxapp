@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Optional;
+import java.util.Map;
 
 @Service
 @Component
@@ -35,13 +35,17 @@ public class CurrencyExchangeService {
         try {
             ResponseEntity<ExchangeResponse> response = restTemplate.getForEntity(url, ExchangeResponse.class);
 
-            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            ExchangeResponse body = response.getBody();
+
+            if (!response.getStatusCode().is2xxSuccessful() || body == null) {
                 throw new ExchangeRateServiceException("Failed to retrieve exchange rates from the API. Status: " + response.getStatusCode());
             }
-
-            return Optional.ofNullable(response.getBody().rates().get(targetCurrency))
-                    .orElseThrow(() -> new CurrencyNotFoundException("Target currency not found in exchange rates: " + targetCurrency));
-
+            Map<String, Double> rates = body.rates();
+            if (rates != null && rates.containsKey(targetCurrency)) {
+                return rates.get(targetCurrency);
+            } else {
+                throw new CurrencyNotFoundException("Target currency not found in exchange rates: " + targetCurrency);
+            }
         } catch (RestClientException e) {
             throw new ExchangeRateServiceException("Error occurred while fetching exchange rates: " + e.getMessage(), e);
         }

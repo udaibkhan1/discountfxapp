@@ -43,7 +43,9 @@ public class DiscountService {
                 break;
         }
 
-        int additionalDiscount = ((int) billRequest.totalAmount() / 100) * 5;
+        int additionalDiscount = (billRequest.totalAmount() > 100)
+                ? ((int) billRequest.totalAmount() / 100) * 5
+                : 0;
         return billRequest.totalAmount() - discountAmount - additionalDiscount;
     }
 }
